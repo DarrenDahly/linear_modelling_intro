@@ -1,0 +1,873 @@
+---
+title: ''
+author: ''
+date: ''
+output: 
+  html_document:
+    df_print: paged
+    keep_md: TRUE
+    toc: TRUE
+    toc_float: TRUE
+    theme: "flatly"
+    code_download: TRUE
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+
+  knitr::opts_chunk$set(
+    echo = TRUE, message = FALSE, warning = FALSE, 
+    fig.width  = 6 * 1.67, fig.height = 6
+    )
+
+```
+
+```{r}
+
+  library(tidyverse)
+  library(viridis)
+  library(knitr)
+  library(gtsummary)
+  library(sjPlot)
+  library(patchwork)
+  library(ggrain)
+  library(performance) # https://easystats.github.io/performance/
+  library(lmtest)
+  library(broom)
+  library(faux)
+  library(ggfortify)
+
+```
+
+```{r}
+
+# Set colors/theme for plots
+
+  col1 <- viridis(1, option = "A", end = 0.9, dir = -1)
+  col2 <- viridis(1, option = "A")
+# col3 <- viridis(1, option = "A", begin = 0.4)
+  col3 <- "#21091F"
+  col4 <- viridis(1, option = "A", begin = 0.6)
+  col5 <- viridis(1, option = "A", begin = 0.1)
+
+  my_theme <- theme_minimal() +
+    theme(
+      panel.background = element_rect(fill = col2), 
+      axis.text = element_text(color = col1),
+      axis.title = element_text(color = col1),
+      plot.background = element_rect(fill = col2), 
+      legend.background = element_rect(fill = col2), 
+      legend.text = element_text(color = col4), 
+      legend.title = element_text(color = col4), 
+      axis.ticks = element_line(color = col1), 
+      title = element_text(color = col1), 
+      panel.grid = element_line(color = col3), 
+      strip.text = element_text(color = col1), 
+      plot.subtitle = element_text(color = col1),
+      plot.caption = element_text(hjust = 0)
+      )
+  
+  theme_set(my_theme)
+  
+```
+
+# Linear regression
+
+## Categorical predictor
+
+```{r}
+
+  set.seed(1207) 
+
+  data <- data_frame(
+    y = c(rnorm(100, 0, 1), rnorm(100, 1, 1)), 
+    x = c(rep("Cats", 100), rep("Dogs", 100)) 
+    )
+
+```
+
+### Single group / intercept only
+
+```{r}
+
+  g1 <- data |>
+    ggplot(aes(y = y, x = 1)) +
+      geom_jitter(width = 0.2, alpha = 0.5, color = col1) +
+      geom_boxplot(fill = NA, color = col1) +
+      geom_point(
+        data = data |> summarise(y = mean(y)), 
+        size = 5, 
+        color = col4
+        ) +
+      xlab("") +
+      theme(
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank()
+        )
+
+  g2 <- data |>
+    ggplot(aes(x = y)) +
+      geom_density(alpha = 0.5, fill = col1) + 
+      geom_rug(color = col4) +
+      geom_vline(
+        data = data |> summarise(y = mean(y)),
+        aes(xintercept = y), color = col4
+        ) +  
+      coord_flip()
+  
+  g1 + g2
+  
+```
+
+```{r}
+
+  m1 <- lm(y ~ 1, data = data)
+
+```
+
+```{r}
+
+  m1
+
+```
+
+```{r}
+
+  mean(data$y)
+
+```
+
+```{r}
+
+  summary(m1)
+
+```
+
+```{r}
+
+  sd(data$y) / sqrt(200)
+
+```
+
+```{r}
+
+  t.test(data$y)
+
+```
+
+### Two groups
+
+```{r}
+
+  g1 <- data |>
+    ggplot(aes(x = x, y = y, color = x, group = x)) +
+      geom_jitter(width = 0.2, alpha = 0.5) +
+      geom_boxplot(fill = NA) +
+      geom_point(
+        data = group_by(data, x) |> summarise(y = mean(y)), 
+        size = 5
+        ) +
+      scale_color_viridis(
+        guide = "none", option = "A", discrete = TRUE, begin = 0.5
+        ) +
+      xlab("")
+
+  g2 <- data |>
+    ggplot(aes(x = y, fill = x, color = x)) +
+      geom_density(alpha = 0.5) + 
+      geom_rug() +
+      geom_vline(
+        data = group_by(data, x) |> summarise(y = mean(y)),
+        aes(xintercept = y, color = x)
+        ) +  
+      scale_fill_viridis(
+        guide = "none", option = "A", discrete = TRUE, begin = 0.5
+        ) +
+      scale_color_viridis(
+        guide = "none", option = "A", discrete = TRUE, begin = 0.5
+        ) +
+      coord_flip()
+  
+  g1 + g2
+    
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y, color = x, group = x, fill = x)) +
+    geom_rain(alpha = 0.5) +
+    scale_fill_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.5
+      ) +
+    scale_color_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.5
+      ) +
+    geom_hline(
+      data = group_by(data, x) |> summarise(y = mean(y)),
+      aes(yintercept = y, color = x)
+      ) +  
+    xlab("")
+
+```
+
+```{r}
+
+  t.test(y ~ x, data = data)
+
+```
+
+```{r}
+
+  m2 <- lm(y ~ x, data = data)
+
+```
+
+```{r}
+
+  summary(m2)
+
+```
+
+```{r}
+
+  tidy(m2)
+
+```
+
+```{r}
+
+  anova(m2)
+
+```
+
+```{r}
+
+  coefficients(m2)
+
+```
+
+```{r}
+
+  confint(m2)
+
+```
+
+```{r}
+
+  tbl_regression(m2) # Can't include an intercept only model
+
+```
+
+```{r}
+
+  tab_model(m1, m2)
+
+```
+
+```{r}
+
+  predict(m1) |> table()
+  mean(data$y)
+
+```
+
+```{r}
+
+  predict(m2) |> table()
+  
+  data |> group_by(x) |> summarize(mean_y = mean(y))
+
+```
+
+### More than two groups
+
+```{r}
+
+  set.seed(1207) 
+
+  data <- data_frame(
+    y = c(rnorm(100, 0, 1), rnorm(100, 1, 1), rnorm(100, -0.5, 1)), 
+    x = factor(c(rep("Cats", 100), rep("Dogs", 100), rep("Fish", 100))) 
+    )
+
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y, color = x, group = x, fill = x)) +
+    geom_rain(alpha = 0.5) +
+    scale_fill_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.5
+      ) +
+    scale_color_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.5
+      ) +
+    geom_hline(
+      data = group_by(data, x) |> summarise(y = mean(y)),
+      aes(yintercept = y, color = x)
+      ) +  
+    xlab("")
+
+```
+
+```{r}
+
+  lm(y ~ x, data = data) |>
+  tab_model()
+
+```
+
+```{r}
+
+  levels(data$x)
+
+  data$x <- relevel(data$x, ref = "Fish")
+
+```
+
+```{r}
+
+  lm(y ~ x, data = data) |>
+  tab_model()
+
+```
+
+```{r}
+
+  levels(data$x) <- c("Dogs", "Cats", "Fish") 
+
+```
+
+```{r}
+
+  lm(y ~ x, data = data) |>
+  tab_model()
+
+```
+
+## Continuous predictors
+
+```{r}
+
+# Set the seed for the random number generator so you will get the same results
+  set.seed(1207) 
+
+  data <- rnorm_multi(
+    n = 500,          
+    mu = c(0, 1),   
+    sd = c(1, 1),   
+    r = c(0.5), 
+    varnames = c("x", "y"),
+    empirical = FALSE
+    )
+
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y)) +
+    geom_point(color = col4)
+
+```
+
+```{r}
+
+  m1 <- lm(y ~ x, data = data)
+
+```
+
+```{r}
+
+  tab_model(m1)
+
+```
+
+```{r}
+
+  data$m1_pred <- predict(m1)
+
+  data |>
+  ggplot(aes(x = x, y = y)) +
+    geom_point(color = col4) +
+    geom_line(aes(y = m1_pred), color = col1, size = 1) 
+
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y)) +
+    geom_point(color = col4) +
+    geom_line(aes(y = predict(m1)), color = col1, size = 1) 
+
+```
+
+```{r}
+
+  interval_pred <- as.data.frame(predict(m1, interval = "confidence"))
+  interval_pred$x <- data$x
+  
+  data |>
+  ggplot(aes(x = x)) +
+    geom_point(aes(y = y), color = col4) +
+    geom_ribbon(
+      data = interval_pred,
+      aes(ymax = upr, ymin = lwr),
+      fill = col1, size = 1, alpha = 0.5
+      ) +
+    geom_line(aes(y = predict(m1)), color = col1, size = 1) 
+
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y)) +
+    geom_point(color = col4) +
+    geom_smooth(
+      method = "lm", color = col1, fill = col1, alpha = 0.5, size = 1
+      ) 
+
+```
+
+## Categorical and continuous
+
+```{r}
+
+  set.seed(19347)
+
+  data <- rnorm_multi(
+    n = 400,          
+    mu = c(0, 1),   
+    sd = c(1, 1),   
+    r = c(0.5), 
+    varnames = c("x", "y"),
+    empirical = FALSE
+    )
+  data$group <- sample(c("Cat", "Dog"), size = nrow(data), replace = TRUE)
+
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y, color = group, group = group)) +
+    geom_point(alpha = 0.5) +
+    scale_color_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.6
+      ) +
+    geom_smooth(method = "lm", se = FALSE)
+
+```
+
+```{r}
+
+  lm(y ~ x + group, data = data) |>
+  tab_model()
+
+```
+
+```{r}
+
+  set.seed(19347)
+
+  data <- bind_rows(
+    rnorm_multi(
+      n = 200,          
+      mu = c(0, 1),   
+      sd = c(1, 1),   
+      r = c(0.5), 
+      varnames = c("x", "y"),
+      empirical = FALSE
+      ) |>
+      mutate(group = "Cat"),
+    rnorm_multi(
+        n = 200,          
+        mu = c(3, 4),   
+        sd = c(1, 1),   
+        r = c(0.5), 
+        varnames = c("x", "y"),
+        empirical = FALSE
+        ) |>
+        mutate(group = "Dog")
+    )
+
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y, color = group, group = group)) +
+    geom_point(alpha = 0.5) +
+    scale_color_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.6
+      )
+
+```
+
+```{r}
+
+  m1 <- lm(y ~ x, data = data) 
+  m2 <- lm(y ~ x + group, data = data)
+  
+  tab_model(m1, m2)
+  
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y)) +
+    geom_point(aes(color = group), alpha = 0.2) +
+    scale_color_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.6
+      ) +
+    geom_smooth(method = "lm", se = FALSE, color = col1, linetype = "dashed") +
+    geom_smooth(aes(group = group, color = group), method = "lm", se = FALSE)
+
+
+```
+
+### Simpson's paradox
+
+```{r}
+
+  set.seed(19347)
+
+  data <- bind_rows(
+    rnorm_multi(
+      n = 200,          
+      mu = c(0, 1),   
+      sd = c(1, 1),   
+      r = c(-0.5), 
+      varnames = c("x", "y"),
+      empirical = FALSE
+      ) |>
+      mutate(group = "Cat"),
+    rnorm_multi(
+        n = 200,          
+        mu = c(3, 4),   
+        sd = c(1, 1),   
+        r = c(-0.5), 
+        varnames = c("x", "y"),
+        empirical = FALSE
+        ) |>
+        mutate(group = "Dog")
+    )
+
+```
+
+```{r}
+
+  g1 <- data |>
+  ggplot(aes(x = x, y = y, color = group)) +
+    geom_point(alpha = 0.5) +
+    scale_color_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.6
+      )
+ 
+  g1
+
+```
+
+```{r}
+
+  g1 + geom_smooth(method = "lm", color = col1, linetype = "dashed")
+
+```
+
+```{r}
+
+  m1 <- lm(y ~ x, data = data) 
+  m2 <- lm(y ~ x + group, data = data)
+  
+  tab_model(m1, m2)
+  
+```
+
+```{r}
+
+  g1 + 
+    geom_smooth(method = "lm", color = col1, linetype = "dashed") +
+    geom_smooth(aes(group = group, color = group), method = "lm", se = FALSE)
+
+```
+
+## Interaction
+
+```{r}
+
+  set.seed(19347)
+
+  data <- bind_rows(
+    rnorm_multi(
+      n = 200,          
+      mu = c(0, 1),   
+      sd = c(1, 1),   
+      r = c(0.5), 
+      varnames = c("x", "y"),
+      empirical = FALSE
+      ) |>
+      mutate(group = "Cat"),
+    rnorm_multi(
+        n = 200,          
+        mu = c(3, 4),   
+        sd = c(1, 1),   
+        r = c(-0.5), 
+        varnames = c("x", "y"),
+        empirical = FALSE
+        ) |>
+        mutate(group = "Dog")
+    )
+
+```
+
+```{r}
+
+  g1 <- data |>
+  ggplot(aes(x = x, y = y, color = group)) +
+    geom_point(alpha = 0.3) +
+    scale_color_viridis(
+      guide = "none", option = "A", discrete = TRUE, begin = 0.6
+      )
+ 
+  g1
+
+```
+
+```{r}
+
+  g1 + geom_smooth(method = "lm", color = col1, linetype = "dashed")
+
+```
+
+```{r}
+
+  m1 <- lm(y ~ x, data = data) 
+  m2 <- lm(y ~ x + group, data = data)
+  m3 <- lm(y ~ x * group, data = data)
+  
+  tab_model(m1, m2, m3)
+  
+```
+
+```{r}
+
+  g1 + 
+    geom_smooth(method = "lm", color = col1, linetype = "dashed", se = FALSE) +
+    geom_smooth(aes(group = group, color = group), method = "lm", se = FALSE)
+
+```
+
+```{r}
+
+  test_performance(m1, m2, m3)
+
+```
+
+## Other issues and topics
+
+### Mean centering 
+
+```{r}
+
+  set.seed(19347)
+
+  data <- rnorm_multi(
+    n = 400,          
+    mu = c(4,   1),   
+    sd = c(0.5, 1),   
+    r = c(0.5), 
+    varnames = c("x", "y"),
+    empirical = FALSE
+    )
+
+```
+
+```{r}
+
+  data |>
+  ggplot(aes(x = x, y = y)) +
+    geom_point(alpha = 0.5, color = col4) +
+    geom_smooth(method = "lm", se = FALSE, color = col1)
+
+```
+
+```{r}
+
+  lm(y ~ x, data = data) |>
+  tab_model()
+
+```
+
+```{r}
+
+  lm(y ~ scale(x, scale = FALSE), data = data) |>
+  tab_model()
+
+```
+
+### Log transformations
+
+```{r}
+
+  data <- read_csv("data/log_example.csv") |>
+    na.omit()
+  data$fu6mo_pad <- data$fu6mo_pad + 0.01
+  data$b_pad <- data$b_pad + 0.01
+
+  g1 <- data |>
+  ggplot(aes(x = b_pad, y = fu6mo_pad, color = active)) +
+    geom_point(alpha = 0.7) +
+    scale_color_viridis(
+      "", option = "A", discrete = TRUE, begin = 0.6
+      ) +
+    xlab("Baseline") +
+    ylab("Follow-up")
+ 
+  g1
+
+```
+
+```{r}
+
+  g1 + geom_smooth(method = "lm", se = FALSE)
+
+```
+
+```{r}
+
+  m1a <- lm(fu6mo_pad ~ active,         data = data)
+  m2a <- lm(fu6mo_pad ~ active + b_pad, data = data)
+  m3a <- lm(fu6mo_pad ~ active * b_pad, data = data)
+
+  tab_model(m1a, m2a, m3a)
+
+```
+
+```{r}
+
+  test_performance(m1a, m2a, m3a)
+
+```
+
+```{r}
+
+  g1 <- data |>
+  ggplot(aes(x = b_pad, y = fu6mo_pad, color = active)) +
+    geom_point(alpha = 0.7) +
+    scale_color_viridis(
+      "", option = "A", discrete = TRUE, begin = 0.6
+      ) +
+    xlab("Baseline") +
+    ylab("Follow-up") +
+    scale_y_log10() +
+    scale_x_log10() + 
+    geom_smooth(method = "lm", se = FALSE)
+ 
+  g1
+
+```
+
+```{r}
+
+  m1b <- lm(log(fu6mo_pad) ~ active,              data = data)
+  m2b <- lm(log(fu6mo_pad) ~ active + log(b_pad), data = data)
+  m3b <- lm(log(fu6mo_pad) ~ active * log(b_pad), data = data)
+
+  tab_model(m1b, m2b, m3b)
+
+```
+
+```{r}
+
+  test_performance(m1b, m2b, m3b)
+
+```
+
+```{r}
+
+  check_model(m2a)
+
+```
+
+```{r}
+
+  check_model(m2b)
+
+```
+
+### What do we assume is normally distributed?
+
+```{r}
+
+  set.seed(1207) 
+
+  data <- data_frame(
+    y = c(rnorm(100, 0, 1), rnorm(100, 4, 1)), 
+    x = c(rep("Cats", 100), rep("Dogs", 100)) 
+    )
+
+```
+
+```{r}
+
+  g1 <- data |>
+    ggplot(aes(y = y, x = 1)) +
+      geom_jitter(width = 0.2, alpha = 0.5, color = col1) +
+      geom_boxplot(fill = NA, color = col1) +
+      geom_point(
+        data = data |> summarise(y = mean(y)), 
+        size = 5, 
+        color = col4
+        ) +
+      xlab("") +
+      theme(
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank()
+        )
+
+  g2 <- data |>
+    ggplot(aes(x = y)) +
+      geom_density(alpha = 0.5, fill = col1) + 
+      geom_rug(color = col4) +
+      geom_vline(
+        data = data |> summarise(y = mean(y)),
+        aes(xintercept = y), color = col4
+        ) +  
+      coord_flip()
+  
+  g1 + g2
+  
+```
+
+```{r}
+  
+  m1 <- lm(y ~ 1, data = data)
+  m2 <- lm(y ~ x, data = data)
+
+```
+
+```{r}
+
+  tab_model(m1, m2)
+
+```
+
+```{r}
+
+  check_model(m1, check = "normality")
+
+  check_model(m2, check = "normality")
+
+```
+
+```{r sysinfo}
+
+  DescTools::SysInfo()
+
+```
