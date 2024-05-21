@@ -29,7 +29,6 @@ editor_options:
   library(lmtest)
   library(broom)
   library(faux)
-  library(ggfortify)
 ```
 
 
@@ -2198,5 +2197,5 @@ editor_options:
 ## x86_64-w64-mingw32/x64 
 ## 
 ## Loaded Packages: 
-##  ggfortify (0.4.17), faux (1.2.1), broom (1.0.6), lmtest (0.9-40), zoo (1.8-12), performance (0.11.0), ggrain (0.0.4), patchwork (1.2.0), sjPlot (2.8.16), gtsummary (1.7.2), knitr (1.46), viridis (0.6.5), viridisLite (0.4.2), lubridate (1.9.3), forcats (1.0.0), stringr (1.5.1), dplyr (1.1.4), purrr (1.0.2), readr (2.1.5), tidyr (1.3.1), tibble (3.2.1), ggplot2 (3.5.1), tidyverse (2.0.0)
+##  faux (1.2.1), broom (1.0.6), lmtest (0.9-40), zoo (1.8-12), performance (0.11.0), ggrain (0.0.4), patchwork (1.2.0), sjPlot (2.8.16), gtsummary (1.7.2), knitr (1.46), viridis (0.6.5), viridisLite (0.4.2), lubridate (1.9.3), forcats (1.0.0), stringr (1.5.1), dplyr (1.1.4), purrr (1.0.2), readr (2.1.5), tidyr (1.3.1), tibble (3.2.1), ggplot2 (3.5.1), tidyverse (2.0.0)
 ```
